@@ -13,7 +13,6 @@ const downloadOptions = document.getElementById('download-options');
 const videoTitle = document.getElementById('video-title');
 const videoDesc = document.getElementById('video-desc');
 
-// یارمەتیدەر بۆ ڕێکخستنی لینکەکە
 function formatUrl(url) {
     let formattedUrl = url.trim();
     if (!/^https?:\/\//i.test(formattedUrl)) {
@@ -100,48 +99,12 @@ function getQualityScore(media) {
     return 0; 
 }
 
-// فەنکشنی زۆرەملێکردنی داونلۆد بۆ ئەوەی ڕاستەوخۆ دابەزێت نەک بکرێتەوە
-async function forceDownload(url, button, label) {
-    const originalHtml = button.innerHTML;
-    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> تکایە چاوەڕێ بکە...';
-    button.style.pointerEvents = 'none';
-
-    try {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error("Network response error");
-        
-        const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        
-        const a = document.createElement('a');
-        a.href = blobUrl;
-        a.download = `Video_${Date.now()}.mp4`; // ناوی فایلەکە
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-    } catch (err) {
-        // ئەگەر بەهۆی سکیوریتی (CORS) سێرڤەرەکەی یوتیوبەوە بلۆک کرا، ئەوا ڕاستەوخۆ دەیکاتەوە
-        console.warn("Direct download blocked by CORS, falling back to new tab.", err);
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.download = `Video_${Date.now()}.mp4`;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-    } finally {
-        button.innerHTML = originalHtml;
-        button.style.pointerEvents = 'auto';
-    }
-}
-
 function renderResult(data) {
     downloadOptions.innerHTML = '';
     
     videoTitle.textContent = data.title || "ڤیدیۆکە ئامادەیە!";
-    videoDesc.textContent = "ئێستا دەتوانیت ڕاستەوخۆ ڤیدیۆکە دابەزێنیت.";
+    // ڕێنمایی بۆ بەکارهێنەر ئەگەر ڤیدیۆکە کرایەوە
+    videoDesc.innerHTML = "ڤیدیۆکە ئامادەیە بۆ داگرتن.<br><span style='color: #fbbf24; font-size: 0.9em; display: inline-block; margin-top: 5px;'><i class='fa-solid fa-circle-info'></i> تێبینی: ئەگەر ڤیدیۆکە کرایەوە، کلیک لە سێ خاڵەکە (⋮) بکە لە خوارەوە بۆ داگرتنی.</span>";
 
     let hasVideo = false;
     
@@ -152,7 +115,11 @@ function renderResult(data) {
         if (videos.length > 0) {
             hasVideo = true;
             videos.forEach((video, index) => {
-                const button = document.createElement('button');
+                const button = document.createElement('a');
+                button.href = video.url;
+                button.target = '_blank';
+                // هەوڵی داونلۆدکردن دەدات، ئەگەر براوسەر ڕێگەی نەدا دەیکاتەوە
+                button.setAttribute('download', 'video.mp4'); 
                 
                 let label = video.label || video.quality || 'بەرزترین کوالیتی';
                 if (index === 0) {
@@ -165,7 +132,6 @@ function renderResult(data) {
                     button.innerHTML = `<i class="fa-solid fa-download"></i> داگرتن بە کوالیتی نزمتر (${label})`;
                 }
                 
-                button.addEventListener('click', () => forceDownload(video.url, button, label));
                 downloadOptions.appendChild(button);
             });
         }
@@ -173,10 +139,12 @@ function renderResult(data) {
     
     if (!hasVideo && data.url) {
         hasVideo = true;
-        const button = document.createElement('button');
+        const button = document.createElement('a');
+        button.href = data.url;
+        button.target = '_blank';
+        button.setAttribute('download', 'video.mp4'); 
         button.className = 'download-btn primary';
         button.innerHTML = '<i class="fa-solid fa-download"></i> داگرتن بە بەرزترین کوالیتی';
-        button.addEventListener('click', () => forceDownload(data.url, button, 'HD'));
         downloadOptions.appendChild(button);
     }
 
@@ -187,3 +155,46 @@ function renderResult(data) {
 
     resultSection.classList.remove('hidden');
 }
+
+// -----------------------------------------
+// PWA Custom Install Banner Logic
+// -----------------------------------------
+let deferredPrompt;
+const pwaBanner = document.getElementById('pwa-install-banner');
+const installBtn = document.getElementById('pwa-install-btn');
+const dismissBtn = document.getElementById('pwa-dismiss');
+
+// گرتنی ئیڤێنتەکە ئەگەر لەسەر ئینتەرنێت بوو
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+});
+
+// پیشاندانی بانەرەکە بە زۆرەملێ تەنانەت ئەگەر لەسەر فایلی لۆکاڵیش بێت بۆ بینینی دیزاینەکە
+setTimeout(() => {
+    if (!localStorage.getItem('pwa-dismissed')) {
+        pwaBanner.classList.remove('hidden');
+        setTimeout(() => pwaBanner.classList.add('show'), 50);
+    }
+}, 3000);
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        deferredPrompt = null;
+        pwaBanner.classList.remove('show');
+        setTimeout(() => pwaBanner.classList.add('hidden'), 500);
+    } else {
+        // ئەگەر لەسەر فایلی لۆکاڵ بوو (file://)
+        alert('بۆ ئەوەی وەک ئەپ دابەزێت، پێویستە ئەم وێبسایتە لەسەر ئینتەرنێت بێت (یان هۆست بکرێت). لەسەر کۆمپیوتەر بە فایلی ئاسایی کار ناکات چونکە سکیوریتی براوسەر ڕێگە نادات!');
+        pwaBanner.classList.remove('show');
+        setTimeout(() => pwaBanner.classList.add('hidden'), 500);
+    }
+});
+
+dismissBtn.addEventListener('click', () => {
+    pwaBanner.classList.remove('show');
+    setTimeout(() => pwaBanner.classList.add('hidden'), 500);
+    localStorage.setItem('pwa-dismissed', 'true');
+});
