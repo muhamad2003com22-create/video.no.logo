@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="ku" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="باشترین وێبسایت بۆ دابەزاندنی ڤیدیۆکانی سۆشیاڵ میدیا بەبێ لۆگۆ (Watermark) بۆ تیکتۆک، ئینستاگرام، یوتیوب و زیاتر.">
+    <title>دابەزێنەری ڤیدیۆ - بەبێ لۆگۆ</title>
+    
+    <!-- PWA Meta Tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="icon.png">
+    <link rel="icon" href="icon.png" type="image/png">
+    
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="background-effects">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1><i class="fa-solid fa-cloud-arrow-down gradient-text"></i> دابەزێنەری ڤیدیۆ</h1>
+            <p>بە ئاسانی ڤیدیۆکانی تیکتۆک، ئینستاگرام، یوتیوب، فەیسبووک و ئێکس دابەزێنە بەبێ لۆگۆ (Watermark).</p>
+        </header>
+
+        <main>
+            <div class="glass-card main-card">
+                <form id="download-form">
+                    <div class="input-group">
+                        <i class="fa-solid fa-link icon"></i>
+                        <input type="url" id="video-url" placeholder="لینکی ڤیدیۆکە لێرە دابنێ..." required autocomplete="off">
+                    </div>
+                    <button type="submit" id="submit-btn">
+                        <span class="btn-text">دەستپێکردن</span>
+                        <i class="fa-solid fa-arrow-left btn-icon"></i>
+                        <div class="loader hidden"></div>
+                    </button>
+                </form>
+
+                <div id="error-message" class="hidden error-box">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="error-text">هەڵەیەک ڕوویدا. تکایە دڵنیابە لە لینکەکە.</span>
+                </div>
+            </div>
+
+            <div id="result-section" class="hidden">
+                <div class="glass-card result-card">
+                    <div class="result-content">
+                        <div class="result-details">
+                            <h3 id="video-title">ڤیدیۆکە ئامادەیە!</h3>
+                            <p id="video-desc">ئێستا دەتوانیت ڤیدیۆکە دابەزێنیت.</p>
+                            <div class="download-options" id="download-options">
+                                <!-- Download buttons injected here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>دروستکراوە بە شێوەیەکی خێرا و سەلامەت بێ هیچ تێچوویەک 🚀</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+    <script>
+        // سێرڤیس وۆرکەر بۆ ئەوەی وەک بەرنامە (App) ئیش بکات
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful');
+                }).catch(err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
+</body>
+</html>
